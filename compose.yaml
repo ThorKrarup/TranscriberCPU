@@ -1,0 +1,7 @@
+﻿services:
+  transcribercpu:
+    image: transcribercpu
+    build:
+      context: .
+      dockerfile: TranscriberCPU/Dockerfile
+
