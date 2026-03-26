@@ -17,9 +17,9 @@ The current repo is a bare-bones console app scaffold. The plan migrates it into
 ## Phase 2: Infrastructure — Audio Processing & Transcription Engine
 **Goal:** Implement the heavy lifting behind the Core contracts.
 
-- Add NuGet packages: `Whisper.net`, `FFMpegCore`, `FFMpegCore.Binaries` (bundles platform-appropriate FFmpeg binaries — no external install required)
-- Implement `IAudioPreprocessor`: convert `.mp3`/`.m4a` → 16kHz mono WAV to a temp folder using `FFMpegArguments` fluent API (NAudio is not suitable — its conversion pipeline has gaps on Linux and macOS)
-- Implement `ITranscriptionService`: load Whisper model, run inference on a background `Task`, fire progress callbacks (`IProgress<T>`), support `CancellationToken`
+- [x] Add NuGet packages: `Whisper.net` 1.9.0, `Whisper.net.Runtime` 1.9.0, `FFMpegCore` 5.4.0 (note: `FFMpegCore.Binaries` does not exist on NuGet — system FFmpeg required)
+- [x] Implement `IAudioPreprocessor`: convert `.mp3`/`.m4a` → 16kHz mono WAV to a temp folder using `FFMpegArguments` fluent API (`FfmpegAudioPreprocessor`)
+- [x] Implement `ITranscriptionService`: load Whisper model, run inference on a background `Task`, fire progress callbacks (`IProgress<T>`), support `CancellationToken` (`WhisperTranscriptionService`)
 - Unit-testable in isolation (no UI dependency)
 
 ---
