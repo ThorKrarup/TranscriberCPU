@@ -5,23 +5,28 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-# Build
-dotnet build TranscriberCPU/TranscriberCPU.csproj
+# Build all
+dotnet build TranscriberCPU.sln
+
+# Build individual projects
+dotnet build LocalNetTranscriber.Core/LocalNetTranscriber.Core.csproj
+dotnet build LocalNetTranscriber.Infrastructure/LocalNetTranscriber.Infrastructure.csproj
+dotnet build LocalNetTranscriber.UI/LocalNetTranscriber.UI.csproj
 
 # Run
-dotnet run --project TranscriberCPU/TranscriberCPU.csproj
+dotnet run --project LocalNetTranscriber.UI/LocalNetTranscriber.UI.csproj
 
-# Publish
-dotnet publish TranscriberCPU/TranscriberCPU.csproj -c Release
-
-# Docker
-docker compose up --build
+# Test
+dotnet test TranscriberCPU.Tests/TranscriberCPU.Tests.csproj
 ```
 
 ## Project Structure
 
-Single-project .NET 10.0 console application (`OutputType=Exe`). All application code lives in `TranscriberCPU/`. The solution file (`TranscriberCPU.sln`) is at the root.
+.NET 10.0 solution with four projects. The solution file (`TranscriberCPU.sln`) is at the root.
+
+- `LocalNetTranscriber.Core/` — class library; models, interfaces, exceptions; zero external NuGet deps
+- `LocalNetTranscriber.Infrastructure/` — class library; implements Core interfaces (audio processing, transcription)
+- `LocalNetTranscriber.UI/` — Avalonia MVVM executable (`OutputType=WinExe`); references Core and Infrastructure
+- `TranscriberCPU.Tests/` — xUnit test project; references Core and Infrastructure
 
 Nullable reference types and implicit usings are enabled.
-
-The app is deployed as a Linux Docker container (see `TranscriberCPU/Dockerfile` and `compose.yaml`).
