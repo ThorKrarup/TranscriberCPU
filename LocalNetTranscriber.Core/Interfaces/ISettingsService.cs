@@ -1,7 +1,9 @@
+using LocalNetTranscriber.Core.Models;
+
 namespace LocalNetTranscriber.Core.Interfaces;
 
 public interface ISettingsService
 {
-    string? LastModelPath { get; }
-    void SaveModelPath(string path);
+    WhisperModelSize SelectedModelSize { get; }
+    void SaveSelectedModelSize(WhisperModelSize size);
 }

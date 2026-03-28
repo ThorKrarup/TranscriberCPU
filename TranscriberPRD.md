@@ -3,7 +3,7 @@
 **Project Name:** LocalNet Transcriber (Working Title)
 **Platform:** Desktop Windows/macOS/Linux (.NET 10 via Avalonia UI)
 **Primary User:** Single User (Personal Tool)
-**Status:** Planning / PRD Phase
+**Status:** In Development
 
 ## 1. Product Overview
 The goal of this project is to build a local, standalone desktop application capable of transcribing audio files into text. The application will run entirely offline, ensuring complete data privacy and removing reliance on external cloud services or internet connectivity.
@@ -20,15 +20,16 @@ The goal of this project is to build a local, standalone desktop application cap
 ### 3.1. Must Have (Core MVP)
 * **File Selection:** The user can open a native system file dialog (utilizing Avalonia's `StorageProvider` API) to select local audio files (e.g., `.mp3`, `.wav`, `.m4a`).
 * **Offline Transcription:** The application processes the audio file locally and generates a text transcript.
-* **Model Loading:** The application can load a local, pre-downloaded transcription model (e.g., a Whisper `.bin` model) via the native file picker.
-* **UI Feedback:** The user can clearly see the status of the application (e.g., "Idle", "Loading Model", "Transcribing...").
+* **Automatic Model Management:** The application manages Whisper models automatically — no manual file picking required. On first launch (or when no model is cached), the app downloads the selected model size from Hugging Face via `Whisper.net`'s built-in `WhisperGgmlDownloader` and stores it in the user's app-data folder. All subsequent launches use the cached model with zero network activity. The transcription process itself is always fully offline.
+* **Model Size Selection:** The user can choose a model size (Tiny / Base / Small / Medium) from a dropdown in the configuration area. The default is **Base**. Changing the size triggers a one-time download of that model if it is not already cached.
+* **UI Feedback:** The user can clearly see the status of the application (e.g., "Idle", "Downloading Model…", "Transcribing…").
 * **Text Output:** The transcribed text is displayed in a readable, scrollable text control within the Avalonia view.
 * **Export:** The user can save the transcribed text to a local `.txt` file using native save dialogs.
 
 ### 3.2. Should Have
-* **Progress Indicator:** A visual progress bar (HTML5/CSS) or percentage indicator during the transcription process.
-* **Model Selection Memory:** The application remembers the path to the last used transcription model using a lightweight JSON settings file, preventing repetitive file picking.
-* **Cancellation:** The user can safely click a "Cancel" button to stop a transcription in progress without crashing the application (utilizing `CancellationToken`).
+* **Progress Indicator:** A visual progress bar and percentage indicator during both model download and transcription.
+* **Model Cache Persistence:** The selected model size is persisted in a lightweight JSON settings file so the app remembers the user's choice across launches.
+* **Cancellation:** The user can safely click a "Cancel" button to stop a model download or transcription in progress without crashing the application (utilizing `CancellationToken`).
 
 ### 3.3. Could Have (Future Enhancements)
 * **Batch Processing:** Queue multiple audio files to be transcribed sequentially.
@@ -43,15 +44,16 @@ The goal of this project is to build a local, standalone desktop application cap
 
 ## 5. UI/UX Requirements
 * **Single Page Dashboard:** A clean, single-view layout consisting of:
-  * **Configuration Section:** Buttons to "Select Model" and "Select Audio File", with text labels showing the currently selected file paths.
+  * **Configuration Section:** A model size dropdown (Tiny / Base / Small / Medium) with a cached-model indicator, and a "Select Audio File" button with the selected filename shown alongside.
   * **Transcript Area:** A large, styled text box to display the ongoing or finished transcript.
-  * **Action Bar:** A "Transcribe" button, a "Cancel" button, a progress indicator, and an "Export" button.
-* **State Management:** Buttons should be visually disabled contextually using Avalonia's binding system (e.g., "Transcribe" is disabled until an audio file and model are selected; "Export" is disabled until transcription is complete).
+  * **Action Bar:** A "Transcribe" button, a "Cancel" button, a progress indicator (shared between model download and transcription), and an "Export" button.
+* **State Management:** Buttons should be visually disabled contextually using Avalonia's binding system (e.g., "Transcribe" is disabled until an audio file is selected; "Export" is disabled until transcription is complete; "Cancel" is only active during a download or transcription).
 
 ## 6. Likely External Dependencies
 * **UI Framework:** `Avalonia UI` with the MVVM Community Toolkit for view models and data binding.
 * **Transcription Engine:** `Whisper.net` (binds to `whisper.cpp`), the standard choice for offline C# transcription.
-* **Audio Processing:** `FFMpegCore` + `FFMpegCore.Binaries` (bundles platform-appropriate FFmpeg binaries — no external install required). NAudio is not suitable as its format conversion pipeline has significant gaps on Linux and macOS. FFMpegCore provides reliable cross-platform `.mp3`/`.m4a` → 16kHz WAV conversion.
+* **Audio Processing:** `FFMpegCore` + system FFmpeg (must be installed separately). NAudio is not suitable as its format conversion pipeline has significant gaps on Linux and macOS. FFMpegCore provides reliable cross-platform `.mp3`/`.m4a` → 16kHz WAV conversion.
+* **Model Download:** `Whisper.net`'s built-in `WhisperGgmlDownloader` — downloads GGML model files from Hugging Face on first use and caches them in the user's app-data folder (`%APPDATA%` / `~/.local/share`).
 
 ## 7. Out of Scope
 * Real-time microphone dictation / live transcription.

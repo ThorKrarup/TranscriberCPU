@@ -1,0 +1,95 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:LocalNetTranscriber.UI.ViewModels"
+        x:Class="LocalNetTranscriber.UI.Views.MainWindow"
+        x:DataType="vm:MainViewModel"
+        Title="LocalNet Transcriber"
+        Width="860" Height="620"
+        MinWidth="600" MinHeight="440">
+
+    <DockPanel Margin="16" LastChildFill="True">
+
+        <!-- Configuration -->
+        <StackPanel DockPanel.Dock="Top" Spacing="8" Margin="0,0,0,12">
+            <TextBlock Text="Configuration" FontSize="14" FontWeight="SemiBold" />
+            <Grid ColumnDefinitions="130,*,Auto" RowDefinitions="Auto,8,Auto">
+
+                <!-- Model size selector -->
+                <TextBlock Grid.Row="0" Grid.Column="0"
+                           Text="Whisper Model"
+                           VerticalAlignment="Center" />
+                <ComboBox Grid.Row="0" Grid.Column="1"
+                          ItemsSource="{Binding ModelSizes}"
+                          SelectedItem="{Binding SelectedModelSize}"
+                          MinWidth="120" />
+                <StackPanel Grid.Row="0" Grid.Column="2"
+                            Orientation="Horizontal"
+                            VerticalAlignment="Center"
+                            Margin="10,0,0,0"
+                            Spacing="0">
+                    <TextBlock Text="Cached"
+                               FontSize="12"
+                               Foreground="Green"
+                               IsVisible="{Binding IsCached}" />
+                    <TextBlock Text="Will download"
+                               FontSize="12"
+                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                               IsVisible="{Binding !IsCached}" />
+                </StackPanel>
+
+                <!-- Audio file selector -->
+                <Button Grid.Row="2" Grid.Column="0"
+                        Content="Select Audio File"
+                        Command="{Binding SelectAudioCommand}" />
+                <TextBlock Grid.Row="2" Grid.Column="1"
+                           Grid.ColumnSpan="2"
+                           Text="{Binding AudioFileName}"
+                           VerticalAlignment="Center"
+                           Margin="10,0,0,0"
+                           TextTrimming="CharacterEllipsis"
+                           Foreground="{DynamicResource SystemControlForegroundBaseHighBrush}" />
+            </Grid>
+        </StackPanel>
+
+        <!-- Separator -->
+        <Separator DockPanel.Dock="Top" Margin="0,0,0,12" />
+
+        <!-- Action Bar -->
+        <StackPanel DockPanel.Dock="Bottom" Spacing="8" Margin="0,12,0,0">
+            <Separator />
+            <ProgressBar Value="{Binding Progress}"
+                         Minimum="0" Maximum="1"
+                         Height="6"
+                         IsVisible="{Binding IsTranscribing}" />
+            <Grid ColumnDefinitions="Auto,Auto,Auto,*">
+                <Button Grid.Column="0"
+                        Content="Transcribe"
+                        Command="{Binding TranscribeCommand}"
+                        Margin="0,0,8,0" />
+                <Button Grid.Column="1"
+                        Content="Cancel"
+                        Command="{Binding CancelCommand}"
+                        Margin="0,0,8,0" />
+                <Button Grid.Column="2"
+                        Content="Export"
+                        Command="{Binding ExportCommand}" />
+                <TextBlock Grid.Column="3"
+                           Text="{Binding StatusText}"
+                           VerticalAlignment="Center"
+                           Margin="16,0,0,0"
+                           TextTrimming="CharacterEllipsis" />
+            </Grid>
+        </StackPanel>
+
+        <!-- Transcript Area -->
+        <TextBox AcceptsReturn="True"
+                 IsReadOnly="True"
+                 Text="{Binding TranscriptText}"
+                 TextWrapping="Wrap"
+                 ScrollViewer.VerticalScrollBarVisibility="Auto"
+                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                 FontFamily="Consolas,Menlo,monospace"
+                 FontSize="13" />
+
+    </DockPanel>
+</Window>
