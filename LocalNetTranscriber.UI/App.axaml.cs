@@ -3,6 +3,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using LocalNetTranscriber.Core.Interfaces;
 using LocalNetTranscriber.Infrastructure.Audio;
+using LocalNetTranscriber.Infrastructure.Diarization;
 using LocalNetTranscriber.Infrastructure.ModelManagement;
 using LocalNetTranscriber.UI.Services;
 using LocalNetTranscriber.UI.ViewModels;
@@ -41,6 +42,8 @@ public partial class App : Application
         services.AddSingleton<IModelManager, WhisperModelManager>();
         services.AddSingleton<IFilePickerService, AvaloniaFilePickerService>();
         services.AddSingleton<IFileSaverService, AvaloniaFileSaverService>();
+        services.AddSingleton<IDialogService, AvaloniaDialogService>();
+        services.AddSingleton<IDiarizationService, SherpaOnnxDiarizationService>();
         services.AddTransient<MainViewModel>();
     }
 }

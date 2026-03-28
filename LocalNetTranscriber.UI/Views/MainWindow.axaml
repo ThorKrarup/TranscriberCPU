@@ -12,7 +12,7 @@
         <!-- Configuration -->
         <StackPanel DockPanel.Dock="Top" Spacing="8" Margin="0,0,0,12">
             <TextBlock Text="Configuration" FontSize="14" FontWeight="SemiBold" />
-            <Grid ColumnDefinitions="130,*,Auto" RowDefinitions="Auto,8,Auto">
+            <Grid ColumnDefinitions="130,*,Auto" RowDefinitions="Auto,8,Auto,8,Auto">
 
                 <!-- Model size selector -->
                 <TextBlock Grid.Row="0" Grid.Column="0"
@@ -48,6 +48,27 @@
                            Margin="10,0,0,0"
                            TextTrimming="CharacterEllipsis"
                            Foreground="{DynamicResource SystemControlForegroundBaseHighBrush}" />
+
+                <!-- Diarization controls -->
+                <StackPanel Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="3"
+                            Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
+                    <CheckBox Content="Enable Speaker Diarization"
+                              IsChecked="{Binding IsDiarizationEnabled}"
+                              ToolTip.Tip="Adds a second CPU-intensive pass. Increases total processing time." />
+                    <StackPanel Orientation="Horizontal" Spacing="8"
+                                IsVisible="{Binding IsDiarizationEnabled}"
+                                VerticalAlignment="Center">
+                        <TextBlock Text="Number of Speakers:"
+                                   VerticalAlignment="Center" />
+                        <NumericUpDown Value="{Binding KnownSpeakerCountDisplay}"
+                                       Minimum="0" Maximum="20"
+                                       FormatString="0"
+                                       IsEnabled="{Binding IsDiarizationEnabled}"
+                                       Width="80"
+                                       ToolTip.Tip="Set to 0 to auto-detect the number of speakers." />
+                    </StackPanel>
+                </StackPanel>
+
             </Grid>
         </StackPanel>
 
@@ -82,14 +103,43 @@
         </StackPanel>
 
         <!-- Transcript Area -->
-        <TextBox AcceptsReturn="True"
-                 IsReadOnly="True"
-                 Text="{Binding TranscriptText}"
-                 TextWrapping="Wrap"
-                 ScrollViewer.VerticalScrollBarVisibility="Auto"
-                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                 FontFamily="Consolas,Menlo,monospace"
-                 FontSize="13" />
+        <Grid>
+            <!-- Flat transcript (no diarization) -->
+            <TextBox AcceptsReturn="True"
+                     IsReadOnly="True"
+                     Text="{Binding TranscriptText}"
+                     TextWrapping="Wrap"
+                     ScrollViewer.VerticalScrollBarVisibility="Auto"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                     FontFamily="Consolas,Menlo,monospace"
+                     FontSize="13"
+                     IsVisible="{Binding !HasSegments}" />
+
+            <!-- Diarized transcript -->
+            <ScrollViewer IsVisible="{Binding HasSegments}"
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled">
+                <ItemsControl ItemsSource="{Binding DisplaySegments}"
+                              Margin="4">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:SegmentDisplayItem">
+                            <StackPanel Margin="0,0,0,12">
+                                <TextBlock Text="{Binding Header}"
+                                           FontWeight="Bold"
+                                           FontFamily="Consolas,Menlo,monospace"
+                                           FontSize="13" />
+                                <TextBlock Text="{Binding Text}"
+                                           TextWrapping="Wrap"
+                                           FontFamily="Consolas,Menlo,monospace"
+                                           FontSize="13"
+                                           Margin="16,2,0,0"
+                                           IsVisible="{Binding Text, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Grid>
 
     </DockPanel>
 </Window>

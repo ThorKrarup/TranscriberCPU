@@ -11,9 +11,14 @@ public class JsonSettingsService : ISettingsService
         "LocalNetTranscriber",
         "settings.json");
 
-    private record SettingsData(WhisperModelSize SelectedModelSize = WhisperModelSize.Base);
+    private record SettingsData(
+        WhisperModelSize SelectedModelSize = WhisperModelSize.Base,
+        bool DiarizationEnabled = false,
+        int? KnownSpeakerCount = null);
 
     public WhisperModelSize SelectedModelSize { get; private set; } = WhisperModelSize.Base;
+    public bool DiarizationEnabled { get; private set; } = false;
+    public int? KnownSpeakerCount { get; private set; } = null;
 
     public JsonSettingsService()
     {
@@ -26,6 +31,13 @@ public class JsonSettingsService : ISettingsService
         Save();
     }
 
+    public void SaveDiarizationSettings(bool enabled, int? speakerCount)
+    {
+        DiarizationEnabled = enabled;
+        KnownSpeakerCount = speakerCount;
+        Save();
+    }
+
     private void Load()
     {
         try
@@ -34,7 +46,11 @@ public class JsonSettingsService : ISettingsService
             var json = File.ReadAllText(SettingsPath);
             var data = JsonSerializer.Deserialize<SettingsData>(json);
             if (data is not null)
+            {
                 SelectedModelSize = data.SelectedModelSize;
+                DiarizationEnabled = data.DiarizationEnabled;
+                KnownSpeakerCount = data.KnownSpeakerCount;
+            }
         }
         catch { /* ignore corrupt/missing settings */ }
     }
@@ -44,7 +60,7 @@ public class JsonSettingsService : ISettingsService
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(SettingsPath)!);
-            var json = JsonSerializer.Serialize(new SettingsData(SelectedModelSize));
+            var json = JsonSerializer.Serialize(new SettingsData(SelectedModelSize, DiarizationEnabled, KnownSpeakerCount));
             File.WriteAllText(SettingsPath, json);
         }
         catch { /* ignore save errors */ }

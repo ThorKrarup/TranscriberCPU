@@ -43,12 +43,14 @@ public class WhisperTranscriptionService : ITranscriptionService
             await using var fileStream = File.OpenRead(wavFilePath);
 
             var sb = new StringBuilder();
+            var timedSegments = new List<TimedTranscriptSegment>();
             TimeSpan lastEnd = TimeSpan.Zero;
             string detectedLanguage = "auto";
 
             await foreach (var segment in processor.ProcessAsync(fileStream, cancellationToken))
             {
                 sb.Append(segment.Text);
+                timedSegments.Add(new TimedTranscriptSegment(segment.Start, segment.End, segment.Text.Trim()));
                 lastEnd = segment.End;
 
                 if (detectedLanguage == "auto" && !string.IsNullOrEmpty(segment.Language))
@@ -58,7 +60,8 @@ public class WhisperTranscriptionService : ITranscriptionService
             return new TranscriptionResult(
                 Text: sb.ToString().Trim(),
                 Duration: lastEnd,
-                Language: detectedLanguage);
+                Language: detectedLanguage,
+                TimedSegments: timedSegments);
         }
     }
 }

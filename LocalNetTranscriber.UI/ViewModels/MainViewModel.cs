@@ -9,11 +9,18 @@ namespace LocalNetTranscriber.UI.ViewModels;
 
 public partial class MainViewModel : ObservableObject
 {
+    private static readonly HashSet<string> SupportedAudioFormats = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "mp3", "m4a", "wav", "ogg", "flac", "aac", "wma", "opus"
+    };
+
     private readonly IFilePickerService _filePicker;
     private readonly IFileSaverService _fileSaver;
     private readonly IAudioPreprocessor _preprocessor;
     private readonly IModelManager _modelManager;
     private readonly ISettingsService _settings;
+    private readonly IDialogService _dialogs;
+    private readonly IDiarizationService _diarization;
 
     private CancellationTokenSource? _cts;
 
@@ -47,34 +54,81 @@ public partial class MainViewModel : ObservableObject
     [NotifyCanExecuteChangedFor(nameof(SelectAudioCommand))]
     private bool _isTranscribing;
 
+    [ObservableProperty]
+    private bool _isDiarizationEnabled;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(KnownSpeakerCountDisplay))]
+    private int? _knownSpeakerCount;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasSegments))]
+    private IReadOnlyList<SegmentDisplayItem>? _displaySegments;
+
     public string AudioFileName =>
         AudioFilePath is null ? "No file selected" : Path.GetFileName(AudioFilePath);
 
     public bool IsCached => _modelManager.IsModelCached(SelectedModelSize);
+
+    public bool HasSegments => DisplaySegments?.Count > 0;
+
+    // 0 is displayed as "auto-detect"; any positive value is the known speaker count.
+    public decimal KnownSpeakerCountDisplay
+    {
+        get => KnownSpeakerCount ?? 0;
+        set
+        {
+            KnownSpeakerCount = (int)value == 0 ? null : (int)value;
+            OnPropertyChanged();
+        }
+    }
 
     public MainViewModel(
         IFilePickerService filePicker,
         IFileSaverService fileSaver,
         IAudioPreprocessor preprocessor,
         IModelManager modelManager,
-        ISettingsService settings)
+        ISettingsService settings,
+        IDialogService dialogs,
+        IDiarizationService diarization)
     {
         _filePicker = filePicker;
         _fileSaver = fileSaver;
         _preprocessor = preprocessor;
         _modelManager = modelManager;
         _settings = settings;
+        _dialogs = dialogs;
+        _diarization = diarization;
         _selectedModelSize = _settings.SelectedModelSize;
+        _isDiarizationEnabled = _settings.DiarizationEnabled;
+        _knownSpeakerCount = _settings.KnownSpeakerCount;
     }
 
     partial void OnSelectedModelSizeChanged(WhisperModelSize value) =>
         _settings.SaveSelectedModelSize(value);
+
+    partial void OnIsDiarizationEnabledChanged(bool value) =>
+        _settings.SaveDiarizationSettings(value, KnownSpeakerCount);
+
+    partial void OnKnownSpeakerCountChanged(int? value) =>
+        _settings.SaveDiarizationSettings(IsDiarizationEnabled, value);
 
     [RelayCommand(CanExecute = nameof(CanSelect))]
     private async Task SelectAudioAsync()
     {
         var path = await _filePicker.PickAudioFileAsync();
         if (path is null) return;
+
+        var ext = Path.GetExtension(path).TrimStart('.');
+        if (!SupportedAudioFormats.Contains(ext))
+        {
+            await _dialogs.ShowErrorAsync(
+                "Unsupported Audio Format",
+                $"The file format '.{ext}' is not supported.\n\n" +
+                $"Supported formats: {string.Join(", ", SupportedAudioFormats).ToUpperInvariant()}");
+            return;
+        }
+
         AudioFilePath = path;
     }
 
@@ -84,9 +138,12 @@ public partial class MainViewModel : ObservableObject
         IsTranscribing = true;
         Progress = 0;
         TranscriptText = string.Empty;
+        DisplaySegments = null;
 
         _cts = new CancellationTokenSource();
         string? tempWavPath = null;
+        string? errorTitle = null;
+        string? errorMessage = null;
 
         try
         {
@@ -127,7 +184,53 @@ public partial class MainViewModel : ObservableObject
 
             var result = await service.TranscribeAsync(tempWavPath, progressReporter, _cts.Token);
 
-            TranscriptText = result.Text;
+            // Phase 4: Diarize (optional)
+            if (IsDiarizationEnabled)
+            {
+                Progress = 0;
+                StatusText = "Diarizing…";
+                var diarizationProgress = new Progress<double>(p =>
+                {
+                    Progress = p;
+                    StatusText = $"Diarizing… {p:P0}";
+                });
+                var segments = await _diarization.DiarizeAsync(
+                    tempWavPath, KnownSpeakerCount, diarizationProgress, _cts.Token);
+
+                // Assign transcript text to each speaker segment by matching Whisper's
+                // timed output: a Whisper segment belongs to whichever speaker's window
+                // contains its midpoint.
+                var timed = result.TimedSegments;
+                if (timed is { Count: > 0 })
+                {
+                    segments = segments.Select(ds =>
+                    {
+                        var text = string.Join(" ", timed
+                            .Where(ws =>
+                            {
+                                var mid = ws.Start + (ws.End - ws.Start) / 2;
+                                return mid >= ds.Start && mid <= ds.End;
+                            })
+                            .Select(ws => ws.Text));
+                        return ds with { Text = text };
+                    }).ToList();
+                }
+
+                result = result with { Segments = segments };
+            }
+
+            if (result.Segments?.Count > 0)
+            {
+                var items = result.Segments.Select(s => new SegmentDisplayItem(s)).ToList();
+                DisplaySegments = items;
+                TranscriptText = string.Join("\n\n", items.Select(i =>
+                    string.IsNullOrEmpty(i.Text) ? i.Header : $"{i.Header}\n{i.Text}"));
+            }
+            else
+            {
+                TranscriptText = result.Text;
+            }
+
             Progress = 1;
             StatusText = $"Done  ·  {result.Duration:hh\\:mm\\:ss}  ·  {result.Language}";
         }
@@ -138,18 +241,24 @@ public partial class MainViewModel : ObservableObject
         }
         catch (ModelLoadException ex)
         {
-            StatusText = $"Model error: {ex.Message}";
+            StatusText = "Model error";
             Progress = 0;
+            errorTitle = "Model Error";
+            errorMessage = $"Failed to load the Whisper model. The file may be corrupt.\n\n{ex.Message}";
         }
         catch (UnsupportedAudioFormatException ex)
         {
-            StatusText = $"Audio error: {ex.Message}";
+            StatusText = "Unsupported format";
             Progress = 0;
+            errorTitle = "Unsupported Audio Format";
+            errorMessage = ex.Message;
         }
         catch (Exception ex)
         {
-            StatusText = $"Error: {ex.Message}";
+            StatusText = "Error";
             Progress = 0;
+            errorTitle = "Transcription Error";
+            errorMessage = ex.Message;
         }
         finally
         {
@@ -160,6 +269,9 @@ public partial class MainViewModel : ObservableObject
             _cts = null;
             IsTranscribing = false;
         }
+
+        if (errorTitle is not null)
+            await _dialogs.ShowErrorAsync(errorTitle, errorMessage!);
     }
 
     [RelayCommand(CanExecute = nameof(CanCancel))]
