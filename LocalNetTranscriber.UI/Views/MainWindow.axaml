@@ -82,7 +82,7 @@
                          Minimum="0" Maximum="1"
                          Height="6"
                          IsVisible="{Binding IsTranscribing}" />
-            <Grid ColumnDefinitions="Auto,Auto,Auto,*">
+            <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,*">
                 <Button Grid.Column="0"
                         Content="Transcribe"
                         Command="{Binding TranscribeCommand}"
@@ -91,10 +91,15 @@
                         Content="Cancel"
                         Command="{Binding CancelCommand}"
                         Margin="0,0,8,0" />
-                <Button Grid.Column="2"
+                <ComboBox Grid.Column="2"
+                          ItemsSource="{Binding ExportFormats}"
+                          SelectedItem="{Binding SelectedExportFormat}"
+                          MinWidth="100"
+                          Margin="0,0,8,0" />
+                <Button Grid.Column="3"
                         Content="Export"
                         Command="{Binding ExportCommand}" />
-                <TextBlock Grid.Column="3"
+                <TextBlock Grid.Column="4"
                            Text="{Binding StatusText}"
                            VerticalAlignment="Center"
                            Margin="16,0,0,0"

@@ -21,8 +21,10 @@ public partial class MainViewModel : ObservableObject
     private readonly ISettingsService _settings;
     private readonly IDialogService _dialogs;
     private readonly IDiarizationService _diarization;
+    private readonly ITranscriptExporter _exporter;
 
     private CancellationTokenSource? _cts;
+    private TranscriptionResult? _lastResult;
 
     public static IReadOnlyList<WhisperModelSize> ModelSizes { get; } =
         Enum.GetValues<WhisperModelSize>();
@@ -38,7 +40,6 @@ public partial class MainViewModel : ObservableObject
     private string? _audioFilePath;
 
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(ExportCommand))]
     private string _transcriptText = string.Empty;
 
     [ObservableProperty]
@@ -65,6 +66,11 @@ public partial class MainViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(HasSegments))]
     private IReadOnlyList<SegmentDisplayItem>? _displaySegments;
 
+    [ObservableProperty]
+    private ExportFormat _selectedExportFormat;
+
+    public static IReadOnlyList<ExportFormat> ExportFormats { get; } = Enum.GetValues<ExportFormat>();
+
     public string AudioFileName =>
         AudioFilePath is null ? "No file selected" : Path.GetFileName(AudioFilePath);
 
@@ -90,7 +96,8 @@ public partial class MainViewModel : ObservableObject
         IModelManager modelManager,
         ISettingsService settings,
         IDialogService dialogs,
-        IDiarizationService diarization)
+        IDiarizationService diarization,
+        ITranscriptExporter exporter)
     {
         _filePicker = filePicker;
         _fileSaver = fileSaver;
@@ -99,9 +106,11 @@ public partial class MainViewModel : ObservableObject
         _settings = settings;
         _dialogs = dialogs;
         _diarization = diarization;
+        _exporter = exporter;
         _selectedModelSize = _settings.SelectedModelSize;
         _isDiarizationEnabled = _settings.DiarizationEnabled;
         _knownSpeakerCount = _settings.KnownSpeakerCount;
+        _selectedExportFormat = _settings.SelectedExportFormat;
     }
 
     partial void OnSelectedModelSizeChanged(WhisperModelSize value) =>
@@ -112,6 +121,9 @@ public partial class MainViewModel : ObservableObject
 
     partial void OnKnownSpeakerCountChanged(int? value) =>
         _settings.SaveDiarizationSettings(IsDiarizationEnabled, value);
+
+    partial void OnSelectedExportFormatChanged(ExportFormat value) =>
+        _settings.SaveExportFormat(value);
 
     [RelayCommand(CanExecute = nameof(CanSelect))]
     private async Task SelectAudioAsync()
@@ -132,13 +144,66 @@ public partial class MainViewModel : ObservableObject
         AudioFilePath = path;
     }
 
+    // Estimated memory required per model (model size × 1.5 for inference overhead)
+    private static readonly Dictionary<WhisperModelSize, long> RequiredMemoryBytes = new()
+    {
+        [WhisperModelSize.Tiny]    =    200_000_000L,
+        [WhisperModelSize.Base]    =    300_000_000L,
+        [WhisperModelSize.Small]   =    800_000_000L,
+        [WhisperModelSize.Medium]  =  2_500_000_000L,
+        [WhisperModelSize.LargeV3] =  4_500_000_000L,
+    };
+
+    /// <summary>Returns available RAM + free swap in bytes. Returns long.MaxValue if unreadable.</summary>
+    private static long GetAvailableMemoryBytes()
+    {
+        try
+        {
+            if (!File.Exists("/proc/meminfo")) return long.MaxValue;
+
+            long memAvailable = 0, swapFree = 0;
+            foreach (var line in File.ReadLines("/proc/meminfo"))
+            {
+                if (line.StartsWith("MemAvailable:"))
+                    memAvailable = ParseMemInfoKb(line);
+                else if (line.StartsWith("SwapFree:"))
+                    swapFree = ParseMemInfoKb(line);
+            }
+            return (memAvailable + swapFree) * 1024L;
+        }
+        catch { return long.MaxValue; }
+    }
+
+    private static long ParseMemInfoKb(string line)
+    {
+        var parts = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length >= 2 && long.TryParse(parts[1], out var kb) ? kb : 0;
+    }
+
     [RelayCommand(CanExecute = nameof(CanTranscribe))]
     private async Task TranscribeAsync()
     {
+        // Pre-flight memory check — runs before IsTranscribing so UI stays ready
+        var required = RequiredMemoryBytes[SelectedModelSize];
+        var available = GetAvailableMemoryBytes();
+        if (available < required)
+        {
+            var reqGb  = required  / 1_073_741_824.0;
+            var availGb = available / 1_073_741_824.0;
+            var proceed = await _dialogs.ShowConfirmAsync(
+                "Low Memory Warning",
+                $"The {SelectedModelSize} model needs ~{reqGb:F1} GB of free memory " +
+                $"but only {availGb:F1} GB is available (RAM + swap).\n\n" +
+                "The application may crash during transcription. Proceed anyway?");
+            if (!proceed) return;
+        }
+
         IsTranscribing = true;
         Progress = 0;
         TranscriptText = string.Empty;
         DisplaySegments = null;
+        _lastResult = null;
+        ExportCommand.NotifyCanExecuteChanged();
 
         _cts = new CancellationTokenSource();
         string? tempWavPath = null;
@@ -246,6 +311,9 @@ public partial class MainViewModel : ObservableObject
                 result = result with { Segments = segments };
             }
 
+            _lastResult = result;
+            ExportCommand.NotifyCanExecuteChanged();
+
             if (result.Segments?.Count > 0)
             {
                 var items = result.Segments.Select(s => new SegmentDisplayItem(s)).ToList();
@@ -307,8 +375,17 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(CanExport))]
     private async Task ExportAsync()
     {
-        var saved = await _fileSaver.SaveTranscriptAsync(TranscriptText);
-        if (saved) StatusText = "Transcript saved";
+        try
+        {
+            var content = _exporter.Render(_lastResult!, SelectedExportFormat);
+            var ext = SelectedExportFormat == ExportFormat.Markdown ? "md" : "txt";
+            var saved = await _fileSaver.SaveTranscriptAsync(content, ext);
+            if (saved) StatusText = "Transcript saved";
+        }
+        catch (Exception ex)
+        {
+            await _dialogs.ShowErrorAsync("Export Error", ex.Message);
+        }
     }
 
     private bool CanSelect => !IsTranscribing;
@@ -319,7 +396,7 @@ public partial class MainViewModel : ObservableObject
 
     private bool CanCancel => IsTranscribing;
 
-    private bool CanExport => !string.IsNullOrEmpty(TranscriptText);
+    private bool CanExport => _lastResult is not null;
 
     private static void TryDelete(string path)
     {

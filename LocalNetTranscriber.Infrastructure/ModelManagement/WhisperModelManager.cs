@@ -16,10 +16,11 @@ public class WhisperModelManager : IModelManager
     // Approximate compressed sizes in bytes, used for download progress reporting
     private static readonly Dictionary<WhisperModelSize, long> ApproximateSizes = new()
     {
-        [WhisperModelSize.Tiny]   =    75_000_000L,
-        [WhisperModelSize.Base]   =   142_000_000L,
-        [WhisperModelSize.Small]  =   466_000_000L,
-        [WhisperModelSize.Medium] = 1_500_000_000L,
+        [WhisperModelSize.Tiny]    =    75_000_000L,
+        [WhisperModelSize.Base]    =   142_000_000L,
+        [WhisperModelSize.Small]   =   466_000_000L,
+        [WhisperModelSize.Medium]  = 1_500_000_000L,
+        [WhisperModelSize.LargeV3] = 3_100_000_000L,
     };
 
     public bool IsModelCached(WhisperModelSize size) => File.Exists(GetModelPath(size));
@@ -73,10 +74,11 @@ public class WhisperModelManager : IModelManager
 
     private static GgmlType ToGgmlType(WhisperModelSize size) => size switch
     {
-        WhisperModelSize.Tiny   => GgmlType.Tiny,
-        WhisperModelSize.Base   => GgmlType.Base,
-        WhisperModelSize.Small  => GgmlType.Small,
-        WhisperModelSize.Medium => GgmlType.Medium,
+        WhisperModelSize.Tiny    => GgmlType.Tiny,
+        WhisperModelSize.Base    => GgmlType.Base,
+        WhisperModelSize.Small   => GgmlType.Small,
+        WhisperModelSize.Medium  => GgmlType.Medium,
+        WhisperModelSize.LargeV3 => GgmlType.LargeV3,
         _ => throw new ArgumentOutOfRangeException(nameof(size), size, null)
     };
 }

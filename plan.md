@@ -79,9 +79,22 @@ Surface diarization in the ViewModel and View without leaking engine details int
 
 ---
 
-## Phase 10 (Future / Could Have)
+## Phase 10: Export Format Selection ✓
 
-Deferred per PRD — implement only after Phase 9 is stable and validated:
+Surface `ITranscriptExporter` in the UI so the user can choose between Plain Text and Markdown before saving.
+
+- **`ExportFormat` enum** (`Core/Models/`) — `PlainText`, `Markdown`
+- **`ITranscriptExporter` interface** (`Core/Interfaces/`) — `string Render(TranscriptionResult result, ExportFormat format)`
+- **`TranscriptExporter` implementation** (`Infrastructure/Export/`) — Plain Text renders speaker headers + timestamps when diarized, otherwise raw text; Markdown renders a `# Transcript` heading with duration/language metadata, then either diarized sections (`## SpeakerId` with italic timestamp range) or timed-segment paragraphs or flat text.
+- **`ISettingsService` update** — adds `ExportFormat SelectedExportFormat { get; }` and `void SaveExportFormat(ExportFormat format)`; `IFileSaverService.SaveTranscriptAsync` gains a `suggestedExtension` parameter so `.md` vs `.txt` is passed at call time.
+- **ViewModel additions** — `ExportFormat SelectedExportFormat` observable, two-way bound and persisted; `ExportFormats` static list for the dropdown. Save command calls `_exporter.Render(_lastResult, SelectedExportFormat)` then `_fileSaver.SaveTranscriptAsync(content, extension, "transcript")`.
+- **View additions** — Export format `ComboBox` alongside the Save button; bound to `SelectedExportFormat`.
+
+---
+
+## Phase 11 (Future / Could Have)
+
+Deferred per PRD — implement only after Phase 10 is stable and validated:
 
 - **Speaker naming:** Post-transcription UI to rename `Speaker A` → a custom label before export
 - **Per-speaker export:** Save one `.txt` file per speaker from a diarized result
@@ -91,4 +104,4 @@ Deferred per PRD — implement only after Phase 9 is stable and validated:
 
 ---
 
-**Key dependency chain:** Phases 1–9 complete. Phase 10 items are future / could-have.
+**Key dependency chain:** Phases 1–10 complete. Phase 11 items are future / could-have.
