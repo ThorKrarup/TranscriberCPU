@@ -64,7 +64,7 @@
                                        Minimum="0" Maximum="20"
                                        FormatString="0"
                                        IsEnabled="{Binding IsDiarizationEnabled}"
-                                       Width="80"
+                                       Width="120"
                                        ToolTip.Tip="Set to 0 to auto-detect the number of speakers." />
                     </StackPanel>
                 </StackPanel>

@@ -73,12 +73,12 @@ public partial class MainViewModel : ObservableObject
     public bool HasSegments => DisplaySegments?.Count > 0;
 
     // 0 is displayed as "auto-detect"; any positive value is the known speaker count.
-    public decimal KnownSpeakerCountDisplay
+    public decimal? KnownSpeakerCountDisplay
     {
         get => KnownSpeakerCount ?? 0;
         set
         {
-            KnownSpeakerCount = (int)value == 0 ? null : (int)value;
+            KnownSpeakerCount = value is null || (int)value == 0 ? null : (int)value;
             OnPropertyChanged();
         }
     }
@@ -197,23 +197,50 @@ public partial class MainViewModel : ObservableObject
                 var segments = await _diarization.DiarizeAsync(
                     tempWavPath, KnownSpeakerCount, diarizationProgress, _cts.Token);
 
-                // Assign transcript text to each speaker segment by matching Whisper's
-                // timed output: a Whisper segment belongs to whichever speaker's window
-                // contains its midpoint.
+                // Assign transcript text to each speaker segment.
+                // Each Whisper segment goes to the diarization window it overlaps most;
+                // if it falls entirely in a gap, it is assigned to the nearest window
+                // by midpoint distance. This ensures no Whisper text is silently dropped.
                 var timed = result.TimedSegments;
                 if (timed is { Count: > 0 })
                 {
-                    segments = segments.Select(ds =>
+                    var dsList = segments.ToList();
+                    var assigned = new Dictionary<int, List<string>>();
+                    for (int i = 0; i < dsList.Count; i++) assigned[i] = [];
+
+                    foreach (var ws in timed)
                     {
-                        var text = string.Join(" ", timed
-                            .Where(ws =>
+                        int bestIdx = 0;
+                        var bestOverlap = TimeSpan.MinValue;
+
+                        for (int i = 0; i < dsList.Count; i++)
+                        {
+                            var ds = dsList[i];
+                            var overlapStart = ws.Start > ds.Start ? ws.Start : ds.Start;
+                            var overlapEnd   = ws.End   < ds.End   ? ws.End   : ds.End;
+                            var overlap = overlapEnd - overlapStart;
+                            if (overlap > bestOverlap) { bestOverlap = overlap; bestIdx = i; }
+                        }
+
+                        // If no actual overlap, fall back to nearest segment by midpoint
+                        if (bestOverlap <= TimeSpan.Zero)
+                        {
+                            var wsMid = ws.Start + (ws.End - ws.Start) / 2;
+                            var bestDist = TimeSpan.MaxValue;
+                            for (int i = 0; i < dsList.Count; i++)
                             {
-                                var mid = ws.Start + (ws.End - ws.Start) / 2;
-                                return mid >= ds.Start && mid <= ds.End;
-                            })
-                            .Select(ws => ws.Text));
-                        return ds with { Text = text };
-                    }).ToList();
+                                var dsMid = dsList[i].Start + (dsList[i].End - dsList[i].Start) / 2;
+                                var dist = wsMid > dsMid ? wsMid - dsMid : dsMid - wsMid;
+                                if (dist < bestDist) { bestDist = dist; bestIdx = i; }
+                            }
+                        }
+
+                        assigned[bestIdx].Add(ws.Text);
+                    }
+
+                    segments = dsList
+                        .Select((ds, i) => ds with { Text = string.Join(" ", assigned[i]) })
+                        .ToList();
                 }
 
                 result = result with { Segments = segments };

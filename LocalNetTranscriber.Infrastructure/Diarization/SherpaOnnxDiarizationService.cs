@@ -91,7 +91,7 @@ public class SherpaOnnxDiarizationService : IDiarizationService
                 Threshold = 0.5f,
             },
             MinDurationOn = 0.2f,
-            MinDurationOff = 0.5f,
+            MinDurationOff = 0.3f,
         };
 
         using var sd = new OfflineSpeakerDiarization(config);
