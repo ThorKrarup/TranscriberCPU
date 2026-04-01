@@ -1,0 +1,111 @@
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+Project 'LocalNetTranscriber.Core' has the following package references
+   [net10.0]: No packages were found for this framework.
+Project 'LocalNetTranscriber.Infrastructure' has the following package references
+   [net10.0]: 
+   Top-level Package                              Requested   Resolved
+   > FFMpegCore                                   5.4.0       5.4.0   
+   > org.k2fsa.sherpa.onnx                        1.12.34     1.12.34 
+   > org.k2fsa.sherpa.onnx.runtime.linux-x64      1.12.34     1.12.34 
+   > SharpCompress                                0.38.0      0.38.0  
+   > Whisper.net                                  1.9.0       1.9.0   
+   > Whisper.net.Runtime                          1.9.0       1.9.0   
+
+   Transitive Package                               Resolved
+   > Instances                                      3.0.2   
+   > Microsoft.Extensions.AI.Abstractions           10.0.0  
+   > org.k2fsa.sherpa.onnx.runtime.linux-arm64      1.12.34 
+   > org.k2fsa.sherpa.onnx.runtime.osx-arm64        1.12.34 
+   > org.k2fsa.sherpa.onnx.runtime.osx-x64          1.12.34 
+   > org.k2fsa.sherpa.onnx.runtime.win-arm64        1.12.34 
+   > org.k2fsa.sherpa.onnx.runtime.win-x64          1.12.34 
+   > org.k2fsa.sherpa.onnx.runtime.win-x86          1.12.34 
+   > Whisper.net.Runtime.Metal                      1.9.0   
+   > ZstdSharp.Port                                 0.8.1   
+
+Project 'LocalNetTranscriber.UI' has the following package references
+   [net10.0]: 
+   Top-level Package                               Requested   Resolved
+   > Avalonia                                      11.2.3      11.2.3  
+   > Avalonia.Desktop                              11.2.3      11.2.3  
+   > Avalonia.Fonts.Inter                          11.2.3      11.2.3  
+   > Avalonia.Themes.Fluent                        11.2.3      11.2.3  
+   > CommunityToolkit.Mvvm                         8.4.0       8.4.0   
+   > Microsoft.Extensions.DependencyInjection      9.0.3       9.0.3   
+
+   Transitive Package                                           Resolved          
+   > Avalonia.Angle.Windows.Natives                             2.1.22045.20230930
+   > Avalonia.BuildServices                                     0.0.29            
+   > Avalonia.FreeDesktop                                       11.2.3            
+   > Avalonia.Native                                            11.2.3            
+   > Avalonia.Remote.Protocol                                   11.2.3            
+   > Avalonia.Skia                                              11.2.3            
+   > Avalonia.Win32                                             11.2.3            
+   > Avalonia.X11                                               11.2.3            
+   > FFMpegCore                                                 5.4.0             
+   > HarfBuzzSharp                                              7.3.0.3           
+   > HarfBuzzSharp.NativeAssets.Linux                           7.3.0.3           
+   > HarfBuzzSharp.NativeAssets.macOS                           7.3.0.3           
+   > HarfBuzzSharp.NativeAssets.WebAssembly                     7.3.0.3           
+   > HarfBuzzSharp.NativeAssets.Win32                           7.3.0.3           
+   > Instances                                                  3.0.2             
+   > MicroCom.Runtime                                           0.11.0            
+   > Microsoft.Extensions.AI.Abstractions                       10.0.0            
+   > Microsoft.Extensions.DependencyInjection.Abstractions      9.0.3             
+   > org.k2fsa.sherpa.onnx                                      1.12.34           
+   > org.k2fsa.sherpa.onnx.runtime.linux-arm64                  1.12.34           
+   > org.k2fsa.sherpa.onnx.runtime.linux-x64                    1.12.34           
+   > org.k2fsa.sherpa.onnx.runtime.osx-arm64                    1.12.34           
+   > org.k2fsa.sherpa.onnx.runtime.osx-x64                      1.12.34           
+   > org.k2fsa.sherpa.onnx.runtime.win-arm64                    1.12.34           
+   > org.k2fsa.sherpa.onnx.runtime.win-x64                      1.12.34           
+   > org.k2fsa.sherpa.onnx.runtime.win-x86                      1.12.34           
+   > SharpCompress                                              0.38.0            
+   > SkiaSharp                                                  2.88.9            
+   > SkiaSharp.NativeAssets.Linux                               2.88.9            
+   > SkiaSharp.NativeAssets.macOS                               2.88.9            
+   > SkiaSharp.NativeAssets.WebAssembly                         2.88.9            
+   > SkiaSharp.NativeAssets.Win32                               2.88.9            
+   > Tmds.DBus.Protocol                                         0.20.0            
+   > Whisper.net                                                1.9.0             
+   > Whisper.net.Runtime                                        1.9.0             
+   > Whisper.net.Runtime.Metal                                  1.9.0             
+   > ZstdSharp.Port                                             0.8.1             
+
+Project 'TranscriberCPU.Tests' has the following package references
+   [net10.0]: 
+   Top-level Package                Requested   Resolved
+   > coverlet.collector             6.0.4       6.0.4   
+   > Microsoft.NET.Test.Sdk         17.14.1     17.14.1 
+   > xunit                          2.9.3       2.9.3   
+   > xunit.runner.visualstudio      3.1.4       3.1.4   
+
+   Transitive Package                               Resolved
+   > FFMpegCore                                     5.4.0   
+   > Instances                                      3.0.2   
+   > Microsoft.CodeCoverage                         17.14.1 
+   > Microsoft.Extensions.AI.Abstractions           10.0.0  
+   > Microsoft.TestPlatform.ObjectModel             17.14.1 
+   > Microsoft.TestPlatform.TestHost                17.14.1 
+   > Newtonsoft.Json                                13.0.3  
+   > org.k2fsa.sherpa.onnx                          1.12.34 
+   > org.k2fsa.sherpa.onnx.runtime.linux-arm64      1.12.34 
+   > org.k2fsa.sherpa.onnx.runtime.linux-x64        1.12.34 
+   > org.k2fsa.sherpa.onnx.runtime.osx-arm64        1.12.34 
+   > org.k2fsa.sherpa.onnx.runtime.osx-x64          1.12.34 
+   > org.k2fsa.sherpa.onnx.runtime.win-arm64        1.12.34 
+   > org.k2fsa.sherpa.onnx.runtime.win-x64          1.12.34 
+   > org.k2fsa.sherpa.onnx.runtime.win-x86          1.12.34 
+   > SharpCompress                                  0.38.0  
+   > Whisper.net                                    1.9.0   
+   > Whisper.net.Runtime                            1.9.0   
+   > Whisper.net.Runtime.Metal                      1.9.0   
+   > xunit.abstractions                             2.0.3   
+   > xunit.analyzers                                1.18.0  
+   > xunit.assert                                   2.9.3   
+   > xunit.core                                     2.9.3   
+   > xunit.extensibility.core                       2.9.3   
+   > xunit.extensibility.execution                  2.9.3   
+   > ZstdSharp.Port                                 0.8.1   
+

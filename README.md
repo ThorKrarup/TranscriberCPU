@@ -51,3 +51,17 @@ Models are cached in `%APPDATA%/LocalNetTranscriber/models/` (Windows) or `~/.co
 dotnet build TranscriberCPU.sln
 dotnet test TranscriberCPU.Tests/TranscriberCPU.Tests.csproj
 ```
+
+## Dependency security
+
+NuGetAudit is enabled solution-wide (`Directory.Build.props`). Every `dotnet restore` checks all packages (direct and transitive) against the GitHub Advisory Database. Moderate, High, and Critical vulnerabilities fail the build; Low severity is reported as a warning.
+
+To run a manual audit and save the results:
+
+```bash
+./scripts/audit.sh
+```
+
+Results are saved to `docs/audit/`:
+- `dependencies.txt` — full package list per project
+- `vulnerability-report.txt` — latest audit output
