@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using FFMpegCore;
 using LocalNetTranscriber.Core.Interfaces;
 using LocalNetTranscriber.Infrastructure.Audio;
 using LocalNetTranscriber.Infrastructure.Diarization;
@@ -21,6 +22,8 @@ public partial class App : Application
 
     public override void OnFrameworkInitializationCompleted()
     {
+        ConfigureFfmpeg();
+
         var services = new ServiceCollection();
         ConfigureServices(services);
         _services = services.BuildServiceProvider();
@@ -34,6 +37,14 @@ public partial class App : Application
         }
 
         base.OnFrameworkInitializationCompleted();
+    }
+
+    private static void ConfigureFfmpeg()
+    {
+        var appDir = AppContext.BaseDirectory;
+        var ffmpegBinary = OperatingSystem.IsWindows() ? "ffmpeg.exe" : "ffmpeg";
+        if (File.Exists(Path.Combine(appDir, ffmpegBinary)))
+            GlobalFFOptions.Configure(options => options.BinaryFolder = appDir);
     }
 
     private static void ConfigureServices(IServiceCollection services)

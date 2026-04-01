@@ -1,0 +1,87 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            rid: linux-x64
+            ffmpeg_url: https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz
+            ffmpeg_binary: ffmpeg
+            artifact_name: LocalNetTranscriber-linux-x64
+          - os: windows-latest
+            rid: win-x64
+            ffmpeg_url: https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip
+            ffmpeg_binary: ffmpeg.exe
+            artifact_name: LocalNetTranscriber-win-x64
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore (enforces NuGetAudit)
+        run: dotnet restore TranscriberCPU.sln
+
+      - name: Test
+        run: dotnet test TranscriberCPU.Tests/TranscriberCPU.Tests.csproj --configuration Release --no-restore
+
+      - name: Publish
+        run: dotnet publish LocalNetTranscriber.UI/LocalNetTranscriber.UI.csproj -p:PublishProfile=${{ matrix.rid }} --no-restore
+
+      # --- Linux: download static FFmpeg build ---
+      - name: Download FFmpeg (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          curl -fsSL "${{ matrix.ffmpeg_url }}" -o ffmpeg.tar.xz
+          tar -xJf ffmpeg.tar.xz --strip-components=1 --wildcards '*/ffmpeg' -C LocalNetTranscriber.UI/publish/${{ matrix.rid }}/
+          chmod +x LocalNetTranscriber.UI/publish/${{ matrix.rid }}/ffmpeg
+
+      # --- Windows: download FFmpeg zip build ---
+      - name: Download FFmpeg (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri "${{ matrix.ffmpeg_url }}" -OutFile ffmpeg.zip
+          $tmp = New-Item -ItemType Directory -Path ffmpeg_tmp
+          Expand-Archive -Path ffmpeg.zip -DestinationPath $tmp
+          $ffmpegExe = Get-ChildItem -Recurse -Filter ffmpeg.exe $tmp | Select-Object -First 1
+          Copy-Item $ffmpegExe.FullName -Destination "LocalNetTranscriber.UI\publish\${{ matrix.rid }}\ffmpeg.exe"
+
+      # --- Package artifacts ---
+      - name: Package (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          cd LocalNetTranscriber.UI/publish
+          tar -czf ../../${{ matrix.artifact_name }}.tar.gz ${{ matrix.rid }}/
+
+      - name: Package (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Compress-Archive -Path "LocalNetTranscriber.UI\publish\${{ matrix.rid }}\*" `
+            -DestinationPath "${{ matrix.artifact_name }}.zip"
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ${{ matrix.artifact_name }}.tar.gz
+            ${{ matrix.artifact_name }}.zip
+          generate_release_notes: true
