@@ -6,21 +6,27 @@ namespace LocalNetTranscriber.Infrastructure.Export;
 
 public class TranscriptExporter : ITranscriptExporter
 {
-    public string Render(TranscriptionResult result, ExportFormat format) => format switch
+    public string Render(TranscriptionResult result, ExportFormat format) =>
+        Render(result, format, new Dictionary<string, string>());
+
+    public string Render(TranscriptionResult result, ExportFormat format,
+                         IReadOnlyDictionary<string, string> speakerNames) => format switch
     {
-        ExportFormat.PlainText => RenderPlainText(result),
-        ExportFormat.Markdown  => RenderMarkdown(result),
+        ExportFormat.PlainText => RenderPlainText(result, speakerNames),
+        ExportFormat.Markdown  => RenderMarkdown(result, speakerNames),
         _ => throw new ArgumentOutOfRangeException(nameof(format), format, null)
     };
 
-    private static string RenderPlainText(TranscriptionResult result)
+    private static string RenderPlainText(TranscriptionResult result,
+                                          IReadOnlyDictionary<string, string> speakerNames)
     {
         if (result.Segments is { Count: > 0 })
         {
             var sb = new StringBuilder();
             foreach (var seg in result.Segments)
             {
-                sb.AppendLine($"{seg.SpeakerId}  {FormatTime(seg.Start)} – {FormatTime(seg.End)}");
+                var name = speakerNames.TryGetValue(seg.SpeakerId, out var n) ? n : seg.SpeakerId;
+                sb.AppendLine($"{name}  {FormatTime(seg.Start)} – {FormatTime(seg.End)}");
                 if (!string.IsNullOrEmpty(seg.Text))
                     sb.AppendLine(seg.Text);
                 sb.AppendLine();
@@ -31,7 +37,8 @@ public class TranscriptExporter : ITranscriptExporter
         return result.Text;
     }
 
-    private static string RenderMarkdown(TranscriptionResult result)
+    private static string RenderMarkdown(TranscriptionResult result,
+                                         IReadOnlyDictionary<string, string> speakerNames)
     {
         var sb = new StringBuilder();
         sb.AppendLine("# Transcript");
@@ -43,7 +50,8 @@ public class TranscriptExporter : ITranscriptExporter
         {
             foreach (var seg in result.Segments)
             {
-                sb.AppendLine($"## {seg.SpeakerId}");
+                var name = speakerNames.TryGetValue(seg.SpeakerId, out var n) ? n : seg.SpeakerId;
+                sb.AppendLine($"## {name}");
                 sb.AppendLine();
                 sb.AppendLine($"*{FormatTime(seg.Start)} – {FormatTime(seg.End)}*");
                 sb.AppendLine();

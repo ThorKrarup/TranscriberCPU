@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using LocalNetTranscriber.Core.Exceptions;
@@ -67,6 +68,10 @@ public partial class MainViewModel : ObservableObject
     private IReadOnlyList<SegmentDisplayItem>? _displaySegments;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasSpeakerEntries))]
+    private ObservableCollection<SpeakerNameEntry>? _speakerNameEntries;
+
+    [ObservableProperty]
     private ExportFormat _selectedExportFormat;
 
     public static IReadOnlyList<ExportFormat> ExportFormats { get; } = Enum.GetValues<ExportFormat>();
@@ -77,6 +82,8 @@ public partial class MainViewModel : ObservableObject
     public bool IsCached => _modelManager.IsModelCached(SelectedModelSize);
 
     public bool HasSegments => DisplaySegments?.Count > 0;
+
+    public bool HasSpeakerEntries => SpeakerNameEntries?.Count > 0;
 
     // 0 is displayed as "auto-detect"; any positive value is the known speaker count.
     public decimal? KnownSpeakerCountDisplay
@@ -202,6 +209,7 @@ public partial class MainViewModel : ObservableObject
         Progress = 0;
         TranscriptText = string.Empty;
         DisplaySegments = null;
+        SpeakerNameEntries = null;
         _lastResult = null;
         ExportCommand.NotifyCanExecuteChanged();
 
@@ -316,7 +324,13 @@ public partial class MainViewModel : ObservableObject
 
             if (result.Segments?.Count > 0)
             {
-                var items = result.Segments.Select(s => new SegmentDisplayItem(s)).ToList();
+                var entries = result.Segments
+                    .Select(s => s.SpeakerId).Distinct()
+                    .Select(id => new SpeakerNameEntry(id)).ToList();
+                var entryMap = entries.ToDictionary(e => e.SpeakerId);
+                SpeakerNameEntries = new ObservableCollection<SpeakerNameEntry>(entries);
+                var items = result.Segments
+                    .Select(s => new SegmentDisplayItem(s, entryMap[s.SpeakerId])).ToList();
                 DisplaySegments = items;
                 TranscriptText = string.Join("\n\n", items.Select(i =>
                     string.IsNullOrEmpty(i.Text) ? i.Header : $"{i.Header}\n{i.Text}"));
@@ -377,7 +391,11 @@ public partial class MainViewModel : ObservableObject
     {
         try
         {
-            var content = _exporter.Render(_lastResult!, SelectedExportFormat);
+            var nameMap = SpeakerNameEntries?
+                .Where(e => !string.IsNullOrWhiteSpace(e.CustomName))
+                .ToDictionary(e => e.SpeakerId, e => e.DisplayName)
+                ?? new Dictionary<string, string>();
+            var content = _exporter.Render(_lastResult!, SelectedExportFormat, nameMap);
             var ext = SelectedExportFormat == ExportFormat.Markdown ? "md" : "txt";
             var saved = await _fileSaver.SaveTranscriptAsync(content, ext);
             if (saved) StatusText = "Transcript saved";

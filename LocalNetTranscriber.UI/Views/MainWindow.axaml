@@ -75,6 +75,34 @@
         <!-- Separator -->
         <Separator DockPanel.Dock="Top" Margin="0,0,0,12" />
 
+        <!-- Speaker Labels -->
+        <Border DockPanel.Dock="Top"
+                IsVisible="{Binding HasSpeakerEntries}"
+                Margin="0,0,0,12">
+            <StackPanel Spacing="6">
+                <TextBlock Text="Speaker Labels"
+                           FontSize="13"
+                           FontWeight="SemiBold" />
+                <ItemsControl ItemsSource="{Binding SpeakerNameEntries}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:SpeakerNameEntry">
+                            <Grid ColumnDefinitions="110,180" Margin="0,2">
+                                <TextBlock Grid.Column="0"
+                                           Text="{Binding SpeakerId}"
+                                           VerticalAlignment="Center"
+                                           FontFamily="Consolas,Menlo,monospace"
+                                           FontSize="13" />
+                                <TextBox Grid.Column="1"
+                                         Text="{Binding CustomName}"
+                                         Watermark="Custom name (optional)"
+                                         FontSize="13" />
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </Border>
+
         <!-- Action Bar -->
         <StackPanel DockPanel.Dock="Bottom" Spacing="8" Margin="0,12,0,0">
             <Separator />

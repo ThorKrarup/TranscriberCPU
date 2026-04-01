@@ -92,11 +92,60 @@ Surface `ITranscriptExporter` in the UI so the user can choose between Plain Tex
 
 ---
 
-## Phase 11 (Future / Could Have)
+## Phase 11: Speaker Naming
 
-Deferred per PRD — implement only after Phase 10 is stable and validated:
+Allow users to replace auto-generated speaker IDs ("Speaker A", "Speaker B") with custom labels ("Alice", "Bob") after diarization completes, before export. The `TranscriptionResult` core model stays immutable; the name mapping is a ViewModel-only, per-session concern applied at render time.
 
-- **Speaker naming:** Post-transcription UI to rename `Speaker A` → a custom label before export
+### New file
+
+**`UI/ViewModels/SpeakerNameEntry.cs`** — `ObservableObject` with:
+- `string SpeakerId` — read-only original ID
+- `[ObservableProperty] string _customName` — two-way bound to a TextBox
+- `string DisplayName` — computed: `CustomName.Trim()` if non-empty, else `SpeakerId`
+- `partial void OnCustomNameChanged` → fires `OnPropertyChanged(nameof(DisplayName))`
+
+### Modified files
+
+**`UI/ViewModels/SegmentDisplayItem.cs`** — convert to `ObservableObject`; constructor takes `(DiarizedSegment, SpeakerNameEntry)`; store raw time spans + entry ref; subscribe to `entry.PropertyChanged` and raise `OnPropertyChanged(nameof(Header))` when `DisplayName` changes; `Header` becomes a computed property `$"{_entry.DisplayName}  {FormatTime(_start)} – {FormatTime(_end)}"`.
+
+**`UI/ViewModels/MainViewModel.cs`**:
+- Add `ObservableCollection<SpeakerNameEntry>? SpeakerNameEntries` + `bool HasSpeakerEntries`
+- Reset `SpeakerNameEntries = null` at the start of each transcription
+- After diarization: build one `SpeakerNameEntry` per unique speaker (in order of first appearance), create an `entryMap`, then construct `DisplaySegments` as `SegmentDisplayItem(seg, entryMap[seg.SpeakerId])`
+- In `ExportAsync`: build `nameMap` from non-blank entries → call `_exporter.Render(_lastResult!, SelectedExportFormat, nameMap)`
+
+**`Core/Interfaces/ITranscriptExporter.cs`** — add overload:
+```csharp
+string Render(TranscriptionResult result, ExportFormat format,
+              IReadOnlyDictionary<string, string> speakerNames);
+```
+
+**`Infrastructure/Export/TranscriptExporter.cs`** — existing `Render(result, format)` delegates to the new overload with an empty dict; `RenderPlainText` and `RenderMarkdown` resolve `seg.SpeakerId` via `speakerNames.TryGetValue(id, out var n) ? n : id`.
+
+**`UI/Views/MainWindow.axaml`** — insert a "Speaker Labels" panel (`DockPanel.Dock="Top"`, `IsVisible="{Binding HasSpeakerEntries}"`) after the separator and before the transcript grid; `ItemsControl` over `SpeakerNameEntries` with a two-column row template: read-only `SpeakerId` label + `TextBox` bound to `CustomName` with placeholder text.
+
+### Data flow
+
+```
+User types → CustomName (TwoWay) → OnCustomNameChanged → DisplayName changes
+  → SegmentDisplayItem raises PropertyChanged("Header") → preview updates live
+
+Export clicked → nameMap built from non-blank entries
+  → _exporter.Render(result, format, nameMap) → IDs resolved; fallback to raw ID
+```
+
+### Edge cases
+
+- No diarization: `HasSpeakerEntries` false, panel hidden, empty map, exporter uses raw IDs — no change from Phase 10 behaviour.
+- New transcription: reset block clears `SpeakerNameEntries` before the new result is populated.
+- Partial naming: blank entries are excluded from the export map; the exporter fallback covers them.
+
+---
+
+## Phase 12 (Future / Could Have)
+
+Deferred — implement only after Phase 11 is stable:
+
 - **Per-speaker export:** Save one `.txt` file per speaker from a diarized result
 - **Batch processing:** Queue multiple audio files to be transcribed sequentially
 - **Timestamps:** Option to embed `[HH:MM:SS]` markers in the transcript
@@ -104,4 +153,4 @@ Deferred per PRD — implement only after Phase 10 is stable and validated:
 
 ---
 
-**Key dependency chain:** Phases 1–10 complete. Phase 11 items are future / could-have.
+**Key dependency chain:** Phases 1–11 complete. Phase 12 items are future / could-have.

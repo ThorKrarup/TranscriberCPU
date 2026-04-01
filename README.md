@@ -29,10 +29,13 @@ dotnet run --project LocalNetTranscriber.UI/LocalNetTranscriber.UI.csproj
 
 1. **Select a Whisper model** from the dropdown (Tiny / Base / Small / Medium). The first time you use a model it will be downloaded automatically from Hugging Face and cached locally.
 2. **Select an audio file** — supported formats: mp3, m4a, wav, ogg, flac, aac, wma, opus.
-3. Click **Transcribe**. Progress is shown in the status bar.
-4. When done, click **Export** to save the transcript as a `.txt` file.
+3. **Optionally enable Speaker Diarization.** Check "Enable Speaker Diarization" to identify who spoke when. Set "Number of Speakers" to the known count or leave it at 0 for auto-detect. Diarization models (~25 MB) are downloaded automatically on first use.
+4. Click **Transcribe**. Progress is shown in the status bar.
+5. **Optionally rename speakers.** After a diarized transcription the "Speaker Labels" panel appears above the transcript. Type a custom name (e.g. "Alice") next to each speaker ID — the transcript preview updates live. Leave a field blank to keep the auto-generated label.
+6. **Select an export format** (Plain Text or Markdown) from the dropdown next to the Export button.
+7. Click **Export** to save the transcript. Custom speaker names are applied in the saved file.
 
-The **Cancel** button safely aborts an in-progress download or transcription.
+The **Cancel** button safely aborts an in-progress download, transcription, or diarization pass.
 
 ## Model sizes
 
