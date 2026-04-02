@@ -52,7 +52,9 @@ jobs:
         shell: bash
         run: |
           curl -fsSL "${{ matrix.ffmpeg_url }}" -o ffmpeg.tar.xz
-          tar -xJf ffmpeg.tar.xz --strip-components=1 --wildcards '*/ffmpeg' -C LocalNetTranscriber.UI/publish/${{ matrix.rid }}/
+          mkdir -p ffmpeg_tmp
+          tar -xJf ffmpeg.tar.xz -C ffmpeg_tmp
+          find ffmpeg_tmp -type f -name 'ffmpeg' | head -1 | xargs -I{} cp {} LocalNetTranscriber.UI/publish/${{ matrix.rid }}/ffmpeg
           chmod +x LocalNetTranscriber.UI/publish/${{ matrix.rid }}/ffmpeg
 
       # --- Windows: download FFmpeg zip build ---
