@@ -38,7 +38,7 @@ jobs:
           dotnet-version: '10.0.x'
 
       - name: Restore (enforces NuGetAudit)
-        run: dotnet restore TranscriberCPU.sln
+        run: dotnet restore TranscriberCPU.sln -r ${{ matrix.rid }} -p:PublishReadyToRun=true
 
       - name: Test
         run: dotnet test TranscriberCPU.Tests/TranscriberCPU.Tests.csproj --configuration Release --no-restore
