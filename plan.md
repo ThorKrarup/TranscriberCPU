@@ -92,7 +92,7 @@ Surface `ITranscriptExporter` in the UI so the user can choose between Plain Tex
 
 ---
 
-## Phase 11: Speaker Naming
+## Phase 11: Speaker Naming ✓
 
 Allow users to replace auto-generated speaker IDs ("Speaker A", "Speaker B") with custom labels ("Alice", "Bob") after diarization completes, before export. The `TranscriptionResult` core model stays immutable; the name mapping is a ViewModel-only, per-session concern applied at render time.
 
@@ -142,7 +142,28 @@ Export clicked → nameMap built from non-blank entries
 
 ---
 
-## Phase 12 (Future / Could Have)
+## Phase 12: Progress Bar Consistency
+
+**Problem 1 — Transcription progress jumps in large uneven increments**
+
+*Root cause:* `WhisperTranscriptionService` uses Whisper.net's `WithProgressHandler`, which fires based on Whisper's internal 30-second chunk boundaries — not actual audio time. For a 3-minute recording that means only 6 updates (0 % → 17 % → 33 % → 50 % → 67 % → 83 % → 100 %), with long stalls between them.
+
+*Fix:* Read total audio duration from the WAV file's RIFF header before processing begins. In the `ProcessAsync` loop, report `segment.End / totalDuration` after each segment lands. Falls back to `WithProgressHandler` only when the header cannot be parsed.
+
+**Problem 2 — Progress bar shows no activity during audio conversion**
+
+*Root cause:* FFmpeg conversion (`IAudioPreprocessor.ConvertToWavAsync`) has no progress callback, so `Progress` sits at 0 and the bar appears frozen during the entire conversion step.
+
+*Fix:* Add `IsProgressIndeterminate` observable property to `MainViewModel`; set it to `true` before conversion and `false` after. Bind `IsIndeterminate` on the `ProgressBar` in `MainWindow.axaml` so the bar shows an animated stripe during conversion.
+
+**Files changed:**
+- `LocalNetTranscriber.Infrastructure/Transcription/WhisperTranscriptionService.cs` — add `TryReadWavDuration`, replace `WithProgressHandler` with per-segment reporting
+- `LocalNetTranscriber.UI/ViewModels/MainViewModel.cs` — add `IsProgressIndeterminate`, set around audio conversion
+- `LocalNetTranscriber.UI/Views/MainWindow.axaml` — bind `IsIndeterminate` on `ProgressBar`
+
+---
+
+## Future / Could Have
 
 Deferred — implement only after Phase 11 is stable:
 
@@ -153,4 +174,4 @@ Deferred — implement only after Phase 11 is stable:
 
 ---
 
-**Key dependency chain:** Phases 1–11 complete. Phase 12 items are future / could-have.
+**Key dependency chain:** Phases 1–11 complete. Phase 12 in progress. Future items are deferred.
