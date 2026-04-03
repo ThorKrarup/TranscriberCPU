@@ -4,7 +4,33 @@ A desktop application that transcribes audio files locally using [Whisper](https
 
 Built with .NET 10, Avalonia UI, and [Whisper.net](https://github.com/sandrohanea/whisper.net).
 
-## Requirements
+## Download & Run
+
+Download the latest release for your platform from the [Releases page](../../releases/latest):
+
+| Platform | File |
+|----------|------|
+| Windows | `LocalNetTranscriber-win-x64.zip` |
+| Linux | `LocalNetTranscriber-linux-x64.tar.gz` |
+
+No .NET or FFmpeg installation required — both are bundled in the archive.
+
+**Windows:** Extract the zip and double-click `LocalNetTranscriber.exe`.
+
+**Linux:** Extract the archive and run `./LocalNetTranscriber` from a terminal.
+
+### Windows SmartScreen warning
+
+When you first run the app, Windows may show a **"Windows protected your PC"** dialog. This appears because the executable is not code-signed, which is common for open-source projects.
+
+To proceed:
+
+- **Option A (dialog):** Click **"More info"** in the dialog, then click **"Run anyway"**.
+- **Option B (file properties):** Right-click `LocalNetTranscriber.exe` → **Properties** → tick **"Unblock"** at the bottom → click **OK**, then run the app.
+
+## Build from Source
+
+### Requirements
 
 - [.NET 10 SDK](https://dotnet.microsoft.com/download)
 - [FFmpeg](https://ffmpeg.org/download.html) available on your `PATH`
@@ -16,8 +42,6 @@ Built with .NET 10, Avalonia UI, and [Whisper.net](https://github.com/sandrohane
 | Linux (apt) | `sudo apt install ffmpeg` |
 | macOS (Homebrew) | `brew install ffmpeg` |
 | Windows (winget) | `winget install ffmpeg` |
-
-## Run
 
 ```bash
 git clone <repo-url>

@@ -68,6 +68,17 @@ jobs:
           $ffmpegExe = Get-ChildItem -Recurse -Filter ffmpeg.exe $tmp | Select-Object -First 1
           Copy-Item $ffmpegExe.FullName -Destination "LocalNetTranscriber.UI\publish\${{ matrix.rid }}\ffmpeg.exe"
 
+      # --- Bundle README ---
+      - name: Copy README (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: cp README.md LocalNetTranscriber.UI/publish/${{ matrix.rid }}/README.md
+
+      - name: Copy README (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: Copy-Item README.md "LocalNetTranscriber.UI\publish\${{ matrix.rid }}\README.md"
+
       # --- Package artifacts ---
       - name: Package (Linux)
         if: runner.os == 'Linux'
