@@ -50,6 +50,9 @@ public partial class MainViewModel : ObservableObject
     private double _progress;
 
     [ObservableProperty]
+    private bool _isProgressIndeterminate;
+
+    [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsCached))]
     [NotifyCanExecuteChangedFor(nameof(TranscribeCommand))]
     [NotifyCanExecuteChangedFor(nameof(CancelCommand))]
@@ -239,12 +242,14 @@ public partial class MainViewModel : ObservableObject
 
             // Phase 2: Convert audio to WAV
             Progress = 0;
+            IsProgressIndeterminate = true;
             StatusText = "Converting audio…";
             var context = new AudioFileContext(
                 AudioFilePath!,
                 Path.GetExtension(AudioFilePath!).TrimStart('.'));
 
             tempWavPath = await _preprocessor.ConvertToWavAsync(context, _cts.Token);
+            IsProgressIndeterminate = false;
 
             // Phase 3: Transcribe
             StatusText = "Transcribing…";
@@ -345,11 +350,13 @@ public partial class MainViewModel : ObservableObject
         }
         catch (OperationCanceledException)
         {
+            IsProgressIndeterminate = false;
             StatusText = "Cancelled";
             Progress = 0;
         }
         catch (ModelLoadException ex)
         {
+            IsProgressIndeterminate = false;
             StatusText = "Model error";
             Progress = 0;
             errorTitle = "Model Error";
@@ -357,6 +364,7 @@ public partial class MainViewModel : ObservableObject
         }
         catch (UnsupportedAudioFormatException ex)
         {
+            IsProgressIndeterminate = false;
             StatusText = "Unsupported format";
             Progress = 0;
             errorTitle = "Unsupported Audio Format";
@@ -364,6 +372,7 @@ public partial class MainViewModel : ObservableObject
         }
         catch (Exception ex)
         {
+            IsProgressIndeterminate = false;
             StatusText = "Error";
             Progress = 0;
             errorTitle = "Transcription Error";
